@@ -1,0 +1,28 @@
+### Створення тендеру
+POST http://localhost:8080/api/tenders
+Content-Type: application/json
+
+{
+  "name": "1 км дороги в Чорнобилі)",
+  "description": "Потрібні потужні люди, які не жаліються на радіацію і асфальт, який не проб'є мутант",
+  "category": ["Дороги", "Категорія 2", "ще щось"],
+  "status": "ACTIVE",
+  "ownerName": "Чорнобильска міська адміністрація"
+}
+
+### Показ тендерів
+GET http://localhost:8080/api/tenders
+
+
+### Створення пропозиції для тендеру з ID = 1
+POST http://localhost:8080/api/tenders/1/tendProposals
+Content-Type: application/json
+
+{
+  "userId": 42,
+  "price": 50.0,
+  "description": "Готові заложити асфальт за пару днів."
+}
+
+### Перегляд пропозицій для тендеру з ID = 1
+GET http://localhost:8080/api/tenders/1/tendProposals
