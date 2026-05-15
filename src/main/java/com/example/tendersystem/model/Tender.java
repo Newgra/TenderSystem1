@@ -6,7 +6,7 @@ public class Tender {
     private int id;
     private String name;
     private String description;
-    private List<String> category;
+    //private List<String> category;
     private String status;
     private String ownerName;
 
@@ -16,7 +16,7 @@ public class Tender {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.category = category;
+        //this.category = category;
         this.status = status;
         this.ownerName = ownerName;
     }
@@ -30,8 +30,8 @@ public class Tender {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public List<String> getCategory() { return category; }
-    public void setCategory(List<String> category) { this.category = category; }
+  //  public List<String> getCategory() { return category; }
+  //  public void setCategory(List<String> category) { this.category = category; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

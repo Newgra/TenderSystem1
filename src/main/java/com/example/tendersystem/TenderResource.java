@@ -45,10 +45,10 @@ public class TenderResource {
         return Response.status(Response.Status.CREATED).entity(newProposal).build();
     }
 
-    @DELETE
-    @Path("/{id}")
-    public Response deleteTender(@PathParam("id") int id) {
-        tenderService.deleteTender(id);
-        return Response.noContent().build();
-    }
+//    @DELETE
+//    @Path("/{id}")
+//    public Response deleteTender(@PathParam("id") int id) {
+//        tenderService.deleteTender(id);
+//        return Response.noContent().build();
+//    }
 }
