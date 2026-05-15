@@ -6,17 +6,17 @@ public class Tender {
     private int id;
     private String name;
     private String description;
-    //private List<String> category;
+    private List<String> categories;
     private String status;
     private String ownerName;
 
     public Tender(){}
 
-    public Tender(int id, String name, String description, List<String> category, String status, String ownerName){
+    public Tender(int id, String name, String description, List<String> categories, String status, String ownerName){
         this.id = id;
         this.name = name;
         this.description = description;
-        //this.category = category;
+        this.categories = categories;
         this.status = status;
         this.ownerName = ownerName;
     }
@@ -30,8 +30,8 @@ public class Tender {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-  //  public List<String> getCategory() { return category; }
-  //  public void setCategory(List<String> category) { this.category = category; }
+    public List<String> getCategories() { return categories; }
+    public void setCategories(List<String> categories) { this.categories = categories; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

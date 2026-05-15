@@ -24,17 +24,39 @@ public class TenderService {
     public List<Tender> getAllTenders() {
         List<Tender> list = new ArrayList<>();
 
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            System.err.println("❌ Драйвер MySQL не знайдено в збірці проєкту!");
+            e.printStackTrace();
+            return list;
+        }
+
         try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM tenders")) {
 
             while (rs.next()) {
                 Tender tender = new Tender();
+                int currentTenderId = rs.getInt("id");
+
                 tender.setId(rs.getInt("id"));
                 tender.setName(rs.getString("name"));
                 tender.setDescription(rs.getString("description"));
                 tender.setStatus(rs.getString("status"));
                 tender.setOwnerName(rs.getString("ownerName"));
+
+                String catSql = "SELECT categoryName FROM tender_categories WHERE tender_id = ?";
+                try (PreparedStatement catStmt = conn.prepareStatement(catSql)) {
+                    catStmt.setInt(1, currentTenderId);
+                    try (ResultSet catRs = catStmt.executeQuery()) {
+                        List<String> categories = new ArrayList<>();
+                        while (catRs.next()) {
+                            categories.add(catRs.getString("categoryName"));
+                        }
+                        tender.setCategories(categories); // Кладемо список у наш тендер
+                    }
+                }
 
                 list.add(tender);
             }
@@ -47,8 +69,44 @@ public class TenderService {
 
     // --- СТАРІ МЕТОДИ (ЗАЛИШАЮТЬСЯ ЯК Є, ЩОБ НЕ БУЛО ПОМИЛОК) ---
     public Tender createTender(Tender tend) {
-        tend.setId(newId++);
-        tenders.add(tend);
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Драйвер MySQL не знайдено!");
+        }
+
+        String sql = "INSERT INTO tenders (name, description, status, ownerName) VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            pstmt.setString(1, tend.getName());
+            pstmt.setString(2, tend.getDescription());
+            pstmt.setString(3, tend.getStatus());
+            pstmt.setString(4, tend.getOwnerName());
+
+            int affectedRows = pstmt.executeUpdate();
+
+            if (affectedRows == 0) {
+                // Якщо база каже "я нічого не записала", ми викидаємо помилку!
+                throw new SQLException("Створення тендеру не вдалося, жодного рядка не змінено.");
+            }
+
+            try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    tend.setId(generatedKeys.getInt(1));
+                } else {
+                    throw new SQLException("Створення тендеру не вдалося, ID не отримано.");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ ПОМИЛКА ПІД ЧАС ЗБЕРЕЖЕННЯ В БАЗУ:");
+            e.printStackTrace();
+            // Викидаємо помилку далі, щоб сервер віддав 500 статус, а не брехав, що все добре
+            throw new RuntimeException("Не вдалося зберегти тендер у БД", e);
+        }
+
         return tend;
     }
 
