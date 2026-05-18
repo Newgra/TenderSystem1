@@ -8,7 +8,7 @@ import jakarta.ws.rs.core.Response;
 
 @Path("/proposals")
 public class ProposalResource {
-    private ProposalService proposalService = new ProposalService();
+    private final ProposalService proposalService = new ProposalService();
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)

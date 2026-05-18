@@ -1,7 +1,5 @@
 package com.example.tendersystem.model;
 
-import java.util.List;
-
 public class Tender {
     private int id;
     private String name;

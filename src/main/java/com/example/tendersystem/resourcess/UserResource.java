@@ -8,7 +8,7 @@ import jakarta.ws.rs.core.Response;
 
 @Path("/users")
 public class UserResource {
-    private UserService userService = new UserService();
+    private final UserService userService = new UserService();
 
     @POST
     @Path("/login")

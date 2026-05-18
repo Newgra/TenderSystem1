@@ -10,7 +10,7 @@ import java.util.List;
 
 @Path("/tenders")
 public class TenderResource {
-    private TenderService tenderService = new TenderService();
+    private final TenderService tenderService = new TenderService();
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
