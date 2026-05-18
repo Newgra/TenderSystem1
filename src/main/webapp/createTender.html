@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Створити тендер</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f6f9; padding: 20px; }
+        .panel { background: white; padding: 30px; border-radius: 10px; max-width: 600px; margin: 40px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { background-color: #3498db; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-cancel { background-color: #95a5a6; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <button class="btn-cancel" onclick="window.location.href='index.html'">Повернутися до списку</button>
+    <h2>Створити новий тендер</h2>
+
+    <form id="tenderForm">
+        <div class="form-group">
+            <label>Назва тендеру:</label>
+            <input type="text" id="name" required>
+        </div>
+        <div class="form-group">
+            <label>Опис:</label>
+            <textarea id="description" rows="4" required></textarea>
+        </div>
+        <button type="submit">Опублікувати тендер</button>
+    </form>
+</div>
+
+<script>
+    const user = JSON.parse(localStorage.getItem('loggedUser'));
+    if (!user) window.location.href = 'login.html';
+
+
+    document.getElementById('tenderForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const newTender = {
+            name: document.getElementById('name').value,
+            description: document.getElementById('description').value,
+            ownerId: user.id,
+            status: "ACTIVE"
+        };
+
+        const response = await fetch('/api/tenders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newTender)
+        });
+
+        if (response.ok) {
+            alert('Тендер успішно створено!');
+            window.location.href = 'index.html';
+        }
+    });
+</script>
+</body>
+</html>

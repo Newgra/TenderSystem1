@@ -6,20 +6,12 @@ public class Tender {
     private int id;
     private String name;
     private String description;
-    private List<String> categories;
     private String status;
+    private int ownerId;
     private String ownerName;
+    private int executorId;
 
     public Tender(){}
-
-    public Tender(int id, String name, String description, List<String> categories, String status, String ownerName){
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.categories = categories;
-        this.status = status;
-        this.ownerName = ownerName;
-    }
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
@@ -30,12 +22,15 @@ public class Tender {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public List<String> getCategories() { return categories; }
-    public void setCategories(List<String> categories) { this.categories = categories; }
-
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
+    public int getOwnerId() { return ownerId; }
+    public void setOwnerId(int ownerId) { this.ownerId = ownerId; }
+
     public String getOwnerName() { return ownerName; }
     public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
+
+    public int getExecutorId() { return executorId; }
+    public void setExecutorId(int executorId) { this.executorId = executorId; }
 }

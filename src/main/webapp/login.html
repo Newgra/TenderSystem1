@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Вхід - Система Тендерів</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .panel { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
+        h2 { text-align: center; color: #2c3e50; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { background-color: #3498db; color: white; border: none; padding: 12px; font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
+        button:hover { background-color: #2980b9; }
+        #loginError { color: red; display: none; font-size: 14px; text-align: center; margin-top: 10px; }
+        p { margin-top: 25px; font-size: 14px; color: #7f8c8d; text-align: left; line-height: 1.5; display: flex; justify-content: center; }
+        .switch-link { color: #2980b9; text-decoration: none; font-weight: 500; display: flex; justify-content: center; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>Вхід у систему</h2>
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Логін:</label>
+            <input type="text" id="login" required>
+        </div>
+        <div class="form-group">
+            <label>Пароль:</label>
+            <input type="password" id="password" required>
+        </div>
+        <button type="submit">Увійти</button>
+        <p id="loginError">Неправильний логін або пароль</p>
+    </form>
+
+
+    <p>
+        Ще немає акаунту?<br>
+        <a href="register.html" class="switch-link">Зареєструватися</a>
+    </p>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const credentials = {
+            login: document.getElementById('login').value,
+            password: document.getElementById('password').value
+        };
+
+        try {
+            const response = await fetch('/api/users/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentials)
+            });
+
+            if (response.ok) {
+                const user = await response.json();
+                localStorage.setItem('loggedUser', JSON.stringify(user));
+                window.location.href = 'index.html';
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Помилка:', error);
+        }
+    });
+</script>
+</body>
+</html>

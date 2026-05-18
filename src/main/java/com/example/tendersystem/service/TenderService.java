@@ -1,82 +1,46 @@
 package com.example.tendersystem.service;
 
 import com.example.tendersystem.model.Tender;
-import com.example.tendersystem.model.TenderProposal;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TenderService {
-
-    // Дані для підключення до бази
     private static final String DB_URL = "jdbc:mysql://localhost:3306/tender_db";
     private static final String USER = "root";
     private static final String PASS = System.getenv("DB_PASSWORD");
 
-    // Тимчасові списки для старих методів, поки ми їх теж не переведемо на базу
-    private static List<Tender> tenders = new ArrayList<>();
-    private static List<TenderProposal> tendProposals = new ArrayList<>();
-    private static int newId = 1;
-    private static int newProposalId = 1;
-
-    // --- НОВИЙ МЕТОД (ПРАЦЮЄ ЧЕРЕЗ БАЗУ ДАНИХ) ---
     public List<Tender> getAllTenders() {
         List<Tender> list = new ArrayList<>();
+        try { Class.forName("com.mysql.cj.jdbc.Driver"); } catch (ClassNotFoundException e) { return list; }
 
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            System.err.println("❌ Драйвер MySQL не знайдено в збірці проєкту!");
-            e.printStackTrace();
-            return list;
-        }
+        // LEFT JOIN гарантує, що тендер виведеться, навіть якщо юзера випадково видалили
+        String sql = "SELECT t.*, u.username AS ownerName FROM tenders t LEFT JOIN users u ON t.ownerId = u.id";
 
         try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM tenders")) {
+             ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 Tender tender = new Tender();
-                int currentTenderId = rs.getInt("id");
-
                 tender.setId(rs.getInt("id"));
                 tender.setName(rs.getString("name"));
                 tender.setDescription(rs.getString("description"));
                 tender.setStatus(rs.getString("status"));
+                tender.setOwnerId(rs.getInt("ownerId"));
                 tender.setOwnerName(rs.getString("ownerName"));
-
-                String catSql = "SELECT categoryName FROM tender_categories WHERE tender_id = ?";
-                try (PreparedStatement catStmt = conn.prepareStatement(catSql)) {
-                    catStmt.setInt(1, currentTenderId);
-                    try (ResultSet catRs = catStmt.executeQuery()) {
-                        List<String> categories = new ArrayList<>();
-                        while (catRs.next()) {
-                            categories.add(catRs.getString("categoryName"));
-                        }
-                        tender.setCategories(categories); // Кладемо список у наш тендер
-                    }
-                }
-
                 list.add(tender);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return list;
     }
 
-    // --- СТАРІ МЕТОДИ (ЗАЛИШАЮТЬСЯ ЯК Є, ЩОБ НЕ БУЛО ПОМИЛОК) ---
     public Tender createTender(Tender tend) {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Драйвер MySQL не знайдено!");
-        }
-
-        String sql = "INSERT INTO tenders (name, description, status, ownerName) VALUES (?, ?, ?, ?)";
+        try { Class.forName("com.mysql.cj.jdbc.Driver"); } catch (ClassNotFoundException e) { return null; }
+        String sql = "INSERT INTO tenders (name, description, status, ownerId) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -84,12 +48,11 @@ public class TenderService {
             pstmt.setString(1, tend.getName());
             pstmt.setString(2, tend.getDescription());
             pstmt.setString(3, tend.getStatus());
-            pstmt.setString(4, tend.getOwnerName());
+            pstmt.setInt(4, tend.getOwnerId());
 
             int affectedRows = pstmt.executeUpdate();
 
             if (affectedRows == 0) {
-                // Якщо база каже "я нічого не записала", ми викидаємо помилку!
                 throw new SQLException("Створення тендеру не вдалося, жодного рядка не змінено.");
             }
 
@@ -101,33 +64,142 @@ public class TenderService {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("❌ ПОМИЛКА ПІД ЧАС ЗБЕРЕЖЕННЯ В БАЗУ:");
+            System.err.println("Помилка під час збереження в базу:");
             e.printStackTrace();
-            // Викидаємо помилку далі, щоб сервер віддав 500 статус, а не брехав, що все добре
             throw new RuntimeException("Не вдалося зберегти тендер у БД", e);
         }
 
         return tend;
     }
 
-    public TenderProposal createTendProposals(int tenderId, TenderProposal tenderProposal) {
-        tenderProposal.setId(newProposalId++);
-        tenderProposal.setTenderId(tenderId);
-        tendProposals.add(tenderProposal);
-        return tenderProposal;
+    public Tender getTenderById(int id) {
+        try { Class.forName("com.mysql.cj.jdbc.Driver"); } catch (ClassNotFoundException e) { return null; }
+
+        String sql = "SELECT t.*, u.username AS ownerName FROM tenders t LEFT JOIN users u ON t.ownerId = u.id WHERE t.id = ?";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    Tender t = new Tender();
+                    t.setId(rs.getInt("id"));
+                    t.setName(rs.getString("name"));
+                    t.setDescription(rs.getString("description"));
+                    t.setStatus(rs.getString("status"));
+                    t.setOwnerId(rs.getInt("ownerId"));
+                    t.setOwnerName(rs.getString("ownerName"));
+                    t.setExecutorId(rs.getInt("executorId"));
+
+                    return t;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    public List<TenderProposal> getAllProposalsTenderId(int tenderId) {
-        List<TenderProposal> result = new ArrayList<>();
-        for (TenderProposal p : tendProposals) {
-            if (p.getTenderId() == tenderId) {
-                result.add(p);
-            }
+    public boolean updateTenderStatus(int tenderId, String newStatus) {
+        try { Class.forName("com.mysql.cj.jdbc.Driver"); } catch (ClassNotFoundException e) { return false; }
+
+        String sql;
+        if ("ACTIVE".equalsIgnoreCase(newStatus)) {
+            sql = "UPDATE tenders SET status = ?, executorId = NULL WHERE id = ?";
+        } else {
+            sql = "UPDATE tenders SET status = ? WHERE id = ?";
         }
-        return result;
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, newStatus);
+            pstmt.setInt(2, tenderId);
+
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<Tender> searchTenders(String keyword) {
+        List<Tender> list = new ArrayList<>();
+        try { Class.forName("com.mysql.cj.jdbc.Driver"); } catch (ClassNotFoundException e) { return list; }
+
+        String sql = "SELECT t.*, u.username AS ownerName FROM tenders t " +
+                "LEFT JOIN users u ON t.ownerId = u.id " +
+                "WHERE t.name LIKE ? OR t.description LIKE ?";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            String searchPattern = "%" + keyword + "%";
+            pstmt.setString(1, searchPattern);
+            pstmt.setString(2, searchPattern);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Tender tender = new Tender();
+                    tender.setId(rs.getInt("id"));
+                    tender.setName(rs.getString("name"));
+                    tender.setDescription(rs.getString("description"));
+                    tender.setStatus(rs.getString("status"));
+                    tender.setOwnerId(rs.getInt("ownerId"));
+                    tender.setOwnerName(rs.getString("ownerName"));
+                    tender.setExecutorId(rs.getInt("executorId"));
+
+                    list.add(tender);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public boolean deleteTender(int id) {
+        try { Class.forName("com.mysql.cj.jdbc.Driver"); } catch (ClassNotFoundException e) { return false; }
+
+        String sqlDeleteProposals = "DELETE FROM tender_proposals WHERE tenderId = ?";
+        String sqlDeleteTender = "DELETE FROM tenders WHERE id = ?";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS)) {
+            try (PreparedStatement pstmt1 = conn.prepareStatement(sqlDeleteProposals)) {
+                pstmt1.setInt(1, id);
+                pstmt1.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt2 = conn.prepareStatement(sqlDeleteTender)) {
+                pstmt2.setInt(1, id);
+                int affectedRows = pstmt2.executeUpdate();
+                return affectedRows > 0;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean selectExecutor(int tenderId, int executorId) {
+        try { Class.forName("com.mysql.cj.jdbc.Driver"); } catch (ClassNotFoundException e) { return false; }
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS)) {
+
+            String sqlUpdateTender = "UPDATE tenders SET status = 'CLOSED', executorId = ? WHERE id = ?";
+            try (PreparedStatement pstmt1 = conn.prepareStatement(sqlUpdateTender)) {
+                pstmt1.setInt(1, executorId);
+                pstmt1.setInt(2, tenderId);
+                pstmt1.executeUpdate();
+            }
+
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }
-//    public void deleteTender(int id) {
-//        tenders.removeIf(t -> t.getId() == id);
-//    }
-

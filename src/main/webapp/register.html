@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Реєстрація</title>
+    <style>
+        body {
+            background-color: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .login-card h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 26px;
+            font-weight: bold;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #000;
+            font-size: 15px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dcdde1;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: #27ae60;
+        }
+
+        .btn-action {
+            width: 100%;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+        .btn-action:hover { background-color: #219653; }
+
+        .switch-link {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .switch-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>Створення акаунту</h2>
+
+    <div class="input-group">
+        <label>Придумайте логін:</label>
+        <input type="text" id="regLogin">
+    </div>
+
+    <div class="input-group">
+        <label>Ваше ім'я:</label>
+        <input type="text" id="regName">
+    </div>
+
+    <div class="input-group">
+        <label>Придумайте пароль:</label>
+        <input type="password" id="regPassword">
+    </div>
+
+    <button class="btn-action" onclick="register()">Створити акаунт</button>
+</div>
+
+<script>
+    async function register() {
+        const loginVal = document.getElementById('regLogin').value.trim();
+        const nameVal = document.getElementById('regName').value.trim();
+        const passVal = document.getElementById('regPassword').value.trim();
+
+        if (!loginVal || !nameVal || !passVal) {
+            alert("Будь ласка, заповніть всі поля!");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/users/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    login: loginVal,
+                    username: nameVal,
+                    password: passVal
+                })
+            });
+
+            if (response.ok) {
+                alert("Акаунт успішно створено! Тепер ви можете увійти.");
+                window.location.href = 'login.html';
+            } else {
+                const err = await response.json();
+                alert(err.error || "Помилка реєстрації. Можливо, такий логін вже існує.");
+            }
+        } catch (error) {
+            console.error("Помилка реєстрації:", error);
+            alert("Помилка з'єднання з сервером.");
+        }
+    }
+</script>
+</body>
+</html>

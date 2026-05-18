@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Тендери</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; margin: 0; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;}
+        h1 { color: #2c3e50; margin: 0; font-size: 24px; }
+        button { border: none; padding: 10px 15px; font-size: 14px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-logout { background-color: #e74c3c; color: white; }
+        .btn-create { background-color: #3498db; color: white; display: none; margin-bottom: 20px; width: 100%; font-size: 16px; padding: 15px;}
+        .btn-apply { background-color: #27ae60; color: white; margin-top: 10px; }
+        .tender-card { background: #fff; padding: 20px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tender-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+        .tender-meta { font-size: 13px; color: #888; background: #ecf0f1; padding: 5px 10px; border-radius: 3px; display: inline-block; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-bar">
+        <h1>Тендери</h1>
+        <div>
+            <span id="userInfo" style="margin-right: 15px;"></span>
+            <button class="btn-logout" onclick="logout()">Вийти</button>
+        </div>
+    </div>
+
+    <button id="btnCreateTender" class="btn-create" onclick="window.location.href='createTender.html'">
+        + Створити новий тендер
+    </button>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <input type="text" id="searchInput" placeholder="Пошук за назвою або описом" style="flex-grow: 1; margin-bottom: 0;">
+        <button onclick="performSearch()" style="background-color: #3498db; width: auto;">Знайти</button>
+        <button onclick="loadTenders(); document.getElementById('searchInput').value='';" style="background-color: #95a5a6; width: auto;"> Скинути</button>
+    </div>
+
+    <div id="tendersList"><p>Завантаження...</p></div>
+</div>
+
+<script>
+    const user = JSON.parse(localStorage.getItem('loggedUser'));
+    if (!user) window.location.href = 'login.html';
+
+
+    if (!user) {
+        window.location.href = 'login.html';
+    } else {
+        document.getElementById('userInfo').innerText = user.username;
+        document.getElementById('btnCreateTender').style.display = 'block';
+
+        loadTenders();
+    }
+
+    function logout() {
+        localStorage.removeItem('user'); // Змінили ключ тут
+        window.location.href = 'login.html';
+    }
+
+    // Малює HTML з отриманого масиву
+    function renderTendersList(tenders) {
+        const listContainer = document.getElementById('tendersList');
+        listContainer.innerHTML = '';
+
+        if (tenders.length === 0) {
+            listContainer.innerHTML = '<p>За вашим запитом нічого не знайдено.</p>';
+            return;
+        }
+
+        tenders.forEach(tender => {
+            let actionBtn = '';
+            if (user.id === tender.ownerId) {
+                actionBtn = `<br><button style="background-color: #f39c12; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold;"
+                            onclick="window.location.href='manageTender.html?id=${tender.id}'">Керувати тендером</button>`;
+            } else {
+                actionBtn = `<br><button style="background-color: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold;"
+                            onclick="window.location.href='tender.html?id=${tender.id}'">Детальніше / Відгукнутись</button>`;
+            }
+
+            const statusColor = (tender.status === 'CLOSED') ? '#e74c3c' : '#27ae60';
+
+            listContainer.innerHTML += `
+                <div class="tender-card">
+                    <div class="tender-title">#${tender.id} - ${tender.name}</div>
+                    <div style="color: #666; margin-bottom: 10px;">${tender.description}</div>
+                    <div class="tender-meta">Власник ID: ${tender.ownerId}</div>
+                    <div class="tender-meta" style="color: ${statusColor}; font-weight: bold;">Статус: ${tender.status || 'ACTIVE'}</div>
+                    ${actionBtn}
+                </div>
+            `;
+        });
+    }
+
+    async function loadTenders() {
+        try {
+            const response = await fetch('/api/tenders');
+            const tenders = await response.json();
+            renderTendersList(tenders);
+        } catch (error) {
+            console.error("Помилка завантаження:", error);
+        }
+    }
+
+    async function performSearch() {
+        const keyword = document.getElementById('searchInput').value;
+        try {
+            const response = await fetch(`/api/tenders/search?query=${encodeURIComponent(keyword)}`);
+            const tenders = await response.json();
+            renderTendersList(tenders);
+        } catch (error) {
+            console.error("Помилка пошуку:", error);
+        }
+    }
+
+    // Пошук по натисканню Enter
+    document.getElementById('searchInput').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            performSearch();
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Керування тендером</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f6f9; padding: 20px; }
+        .panel { background: white; padding: 30px; border-radius: 10px; max-width: 800px; margin: 20px auto; }
+        h2 { color: #2c3e50; margin-top: 0; }
+        .info-block { background: #fff3cd; border-left: 5px solid #f39c12; padding: 15px; margin-bottom: 20px; border-radius: 4px;}
+        button { border: none; padding: 10px 15px; font-size: 14px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-back { background-color: #95a5a6; color: white; margin-bottom: 15px; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .dash-card { border: 1px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; background: white; }
+        .dash-card h3 { margin-top: 0; color: #2c3e50;}
+        .btn-status { background-color: #e67e22; color: white; width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        .btn-action { background-color: #e74c3c; color: white; width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <button class="btn-back" onclick="window.location.href='index.html'">Повернутися на головну</button>
+
+    <div class="info-block">
+        <h2 id="tName">Завантаження...</h2>
+        <p><strong>Поточний статус:</strong> <span id="tStatus" style="font-weight: bold;"></span></p>
+    </div>
+
+    <h2>Панель керування</h2>
+
+    <div class="dashboard-grid">
+        <div class="dash-card" style="border-color: #e67e22;">>
+            <h3>Статус тендеру</h3>
+            <p style="color: #7f8c8d; font-size: 14px;">Зупиніть тендер, якщо ви вже обрали виконавця або хочете припинити збір заявок.</p>
+            <button class="btn-status" onclick="changeStatus()">Змінити статус</button>
+        </div>
+
+        <div class="dash-card" style="border-color: #e74c3c;">
+            <h3 style="color: #e74c3c;">Видалити тендер</h3>
+            <p style="color: #7f8c8d; font-size: 14px;">Видалення тендеру назавжди зітре його з бази даних. Цю дію неможливо скасувати.</p>
+            <button class="btn-action" onclick="deleteTender()">Видалити тендер</button>
+        </div>
+    </div>
+
+    <div id="proposalsContainer" style="margin-top: 30px; padding: 25px; background: white; border-radius: 10px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
+        <h2 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid #f4f6f9; padding-bottom: 10px;">Отримані пропозиції від виконавців</h2>
+        <div id="proposalsList" style="margin-top: 15px;">
+        </div>
+    </div>
+</div>
+
+<script>
+    const user = JSON.parse(localStorage.getItem('loggedUser'));
+    if (!user) window.location.href = 'login.html';
+
+    let tenderId = new URLSearchParams(window.location.search).get('id');
+    let currentTender = null;
+
+    async function verifyAndLoad() {
+        if (!tenderId) {
+            alert("Помилка: Тендер не знайдено");
+            window.location.href = 'index.html';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/tenders/' + tenderId);
+            if (response.ok) {
+                const tender = await response.json();
+                currentTender = tender;
+
+                document.getElementById('tName').innerText = `Тендер #${tender.id}: ${tender.name}`;
+                document.getElementById('tStatus').innerText = tender.status;
+
+                if (user.id !== tender.ownerId) {
+                    alert("У вас немає прав для доступу до цієї сторінки!");
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                document.getElementById('tName').innerText = `Тендер #${tender.id}: ${tender.name}`;
+                document.getElementById('tStatus').innerText = tender.status;
+                document.getElementById('tStatus').style.color = tender.status === 'ACTIVE' ? '#27ae60' : '#e74c3c';
+
+                viewProposals();
+
+            } else {
+                alert("Тендер не існує");
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function changeStatus() {
+        const currentStatus = document.getElementById('tStatus').innerText;
+        const newStatus = (currentStatus === 'ACTIVE') ? 'CLOSED' : 'ACTIVE';
+        const isConfirmed = confirm(`Ви впевнені, що хочете змінити статус на ${newStatus}?`);
+        if (!isConfirmed) return;
+
+        try {
+            const response = await fetch(`/api/tenders/${tenderId}/status?newStatus=${newStatus}`, {
+                method: 'PUT'
+            });
+
+            if (response.ok) {
+                verifyAndLoad();
+            } else {
+                alert("Помилка при зміні статусу на сервері.");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function viewProposals() {
+        try {
+            const response = await fetch('/api/proposals/tender/' + tenderId);
+            if (response.ok) {
+                const proposals = await response.json();
+                const list = document.getElementById('proposalsList');
+                list.innerHTML = '';
+
+                if (proposals.length === 0) {
+                    list.innerHTML = '<p style="color: #7f8c8d; font-style: italic;">На цей тендер немає затверджених пропозицій.</p>';
+                    return;
+                }
+
+                const currentStatus = document.getElementById('tStatus').innerText.trim();
+                const winnerId = currentTender ? currentTender.executorId : null;
+
+                proposals.forEach(p => {
+                    let selectBtnHtml = '';
+                    let badgeHtml = '';
+                    let cardBorderColor = '#3498db';
+                    let cardBackground = '#f8fafc';
+
+                    if (winnerId && p.executorId === winnerId) {
+                        cardBorderColor = '#27ae60';
+                        cardBackground = '#f0fff4';
+                        badgeHtml = `
+                            <div style="background-color: #27ae60; color: white; padding: 6px 12px; font-weight: bold; border-radius: 4px; display: inline-block; margin-bottom: 12px; font-size: 13px; box-shadow: 0 2px 4px rgba(39,174,96,0.2);">
+                                ПЕРЕМОЖЕЦЬ
+                            </div>
+                        `;
+                    }
+
+                    if (currentStatus === 'ACTIVE') {
+                        selectBtnHtml = `
+                            <button onclick="chooseExecutor(${p.executorId})"
+                                    style="margin-top: 15px; background-color: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; width: 100%;">
+                                Обрати цього виконавця
+                            </button>
+                        `;
+                    }
+
+                    list.innerHTML += `
+                        <div style="background: ${cardBackground}; border-left: 6px solid ${cardBorderColor}; padding: 20px; margin-bottom: 15px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.3s;">
+                            ${badgeHtml}
+                            <div style="font-size: 19px; font-weight: bold; color: #27ae60;"> Ціна: ${p.price} грн</div>
+                            <div style="color: #333; margin-top: 8px; font-size: 15px;"> <strong>Коментар:</strong> ${p.description}</div>
+                            <div style="font-size: 13px; color: #666; margin-top: 12px; background: #eaeded; padding: 4px 10px; display: inline-block; border-radius: 3px;">
+                                <strong>Виконавець:</strong> ${p.executorName || 'ID ' + p.executorId}
+                            </div>
+                            ${selectBtnHtml}
+                        </div>
+                    `;
+                });
+            }
+        } catch (error) {
+            console.error("Помилка завантаження пропозицій:", error);
+        }
+    }
+
+    async function deleteTender() {
+        const isConfirmed = confirm("УВАГА: Ви дійсно хочете назавжди видалити цей тендер та всі його заявки?");
+        if (!isConfirmed) return;
+
+        try {
+            const response = await fetch('/api/tenders/' + tenderId, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert("Тендер успішно видалено!");
+                window.location.href = 'index.html';
+            } else {
+                alert("Сталася помилка при видаленні.");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function chooseExecutor(executorId) {
+        if (!confirm("Ви впевнені, що хочете обрати цього виконавця?")) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/tenders/${tenderId}/select-executor?executorId=${executorId}`, {
+                method: 'PUT'
+            });
+
+            if (response.ok) {
+                alert("Виконавця успішно затверджено! Тендер закрито.");
+                location.reload();
+            } else {
+                alert("Сталася помилка при збереженні.");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    verifyAndLoad();
+</script>
+</body>
+</html>
