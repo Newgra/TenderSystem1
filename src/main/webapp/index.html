@@ -73,10 +73,12 @@
         tenders.forEach(tender => {
             let actionBtn = '';
             if (user.id === tender.ownerId) {
-                actionBtn = `<br><button style="background-color: #f39c12; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold;"
+                actionBtn = `<br><button style="background-color: #f39c12; color: white; border: none; padding: 8px 15px;
+                            border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold;"
                             onclick="window.location.href='manageTender.html?id=${tender.id}'">Керувати тендером</button>`;
             } else {
-                actionBtn = `<br><button style="background-color: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold;"
+                actionBtn = `<br><button style="background-color: #3498db; color: white; border: none; padding: 8px 15px;
+                            border-radius: 5px; cursor: pointer; margin-top: 10px; font-weight: bold;"
                             onclick="window.location.href='tender.html?id=${tender.id}'">Детальніше / Відгукнутись</button>`;
             }
 

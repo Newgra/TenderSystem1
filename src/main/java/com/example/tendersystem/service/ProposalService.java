@@ -8,6 +8,7 @@ public class ProposalService {
     private static final String DB_URL = "jdbc:mysql://localhost:3306/tender_db";
     private static final String USER = "root";
     private static final String PASS = System.getenv("DB_PASSWORD");
+    // private static final String PASS = "YourPassword";
 
     public boolean createProposal(TenderProposal proposal) {
         try {
